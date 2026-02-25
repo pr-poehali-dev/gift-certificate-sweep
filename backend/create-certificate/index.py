@@ -180,31 +180,35 @@ def handler(event, context):
 
     order_guid = str(uuid.uuid4()).replace("-", "")[:16]
     order_payload = {
-        "id": order_guid,
-        "type": "sell",
         "guid": order_guid,
         "number": f"SG-{order_guid[:8]}",
         "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "clientId": int(client_id),
-        "sum": 0,
-        "sumDiscount": 0,
+        "sum": float(nominal),
+        "sumDiscount": float(nominal),
         "bonusAdd": 0,
         "bonusWriteOff": 0,
         "depositAdd": float(nominal),
         "depositWriteOff": 0,
         "cart": [
             {
-                "id": 1,
                 "name": f"Подарочный сертификат {nominal} руб.",
-                "quantity": 1,
-                "sum": float(nominal),
-                "sumDiscount": float(nominal),
+                "nid": order_guid,
+                "groupId": "certificates",
+                "groupName": "Сертификаты",
+                "price": float(nominal),
+                "priceWithDiscount": float(nominal),
+                "amount": 1,
             }
         ],
     }
+    order_params = {
+        "type": "clientId",
+        "id": str(client_id),
+    }
     print("=== createOrder payload ===")
     print(json.dumps(order_payload, ensure_ascii=False))
-    deposit_result = ph_request("POST", "createOrder", data=order_payload)
+    print(f"=== createOrder query: type=clientId, id={client_id} ===")
+    deposit_result = ph_request("POST", "createOrder", data=order_payload, params=order_params)
     print("=== createOrder response ===")
     print(json.dumps(deposit_result, ensure_ascii=False))
 
