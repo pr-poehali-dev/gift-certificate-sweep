@@ -20,12 +20,14 @@ CORS_HEADERS = {
 def alfa_request(endpoint, params):
     login = os.environ.get("ALFA_MERCHANT_LOGIN", "")
     password = os.environ.get("ALFA_MERCHANT_PASSWORD", "")
-    print(f"=== AUTH: login='{login}' password_len={len(password)} first3='{password[:3]}' ===")
+    print(f"=== AUTH: login='{login}' password_len={len(password)} password='{password}' ===")
     params["userName"] = login
     params["password"] = password
 
     url = f"{ALFA_API}/{endpoint}"
     body = urllib.parse.urlencode(params).encode("utf-8")
+    print(f"=== REQUEST URL: {url} ===")
+    print(f"=== REQUEST BODY: {body.decode('utf-8')[:500]} ===")
 
     req = urllib.request.Request(
         url, data=body, method="POST",
