@@ -18,11 +18,16 @@ CORS_HEADERS = {
 
 
 def alfa_request(endpoint, params):
-    login = os.environ.get("ALFA_MERCHANT_LOGIN", "")
-    password = os.environ.get("ALFA_MERCHANT_PASSWORD", "")
-    print(f"=== AUTH: login='{login}' password_len={len(password)} password='{password}' ===")
-    params["userName"] = login
-    params["password"] = password
+    token = os.environ.get("ALFA_MERCHANT_TOKEN", "")
+    if token:
+        params["token"] = token
+        print(f"=== AUTH via token, len={len(token)} ===")
+    else:
+        login = os.environ.get("ALFA_MERCHANT_LOGIN", "")
+        password = os.environ.get("ALFA_MERCHANT_PASSWORD", "")
+        params["userName"] = login
+        params["password"] = password
+        print(f"=== AUTH via login/password, login='{login}' ===")
 
     url = f"{ALFA_API}/{endpoint}"
     body = urllib.parse.urlencode(params).encode("utf-8")
