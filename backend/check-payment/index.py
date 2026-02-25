@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 from datetime import datetime
 
-ALFA_API = "https://pay.alfabank.ru/payment/rest"
+ALFA_API = "https://ecom.alfabank.ru/payment/rest"
 PRIME_HILL_BASE = "https://open-api.p-h.app/api/v2"
 TEMPLATE_ID = 15852
 
