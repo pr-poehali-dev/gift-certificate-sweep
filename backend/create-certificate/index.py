@@ -2,6 +2,7 @@
 import json
 import os
 import uuid
+import random
 import urllib.request
 import urllib.error
 import urllib.parse
@@ -106,7 +107,9 @@ def handler(event, context):
     last_name = name_parts[1] if len(name_parts) > 1 else ""
     patronymic = name_parts[2] if len(name_parts) > 2 else ""
 
-    create_result = ph_request("POST", "createClients", data={
+    rand_phone = phone if phone else "7" + str(random.randint(9000000000, 9999999999))
+
+    client_payload = {
         "clients": [{
             "firstName": first_name,
             "lastName": last_name,
@@ -114,7 +117,7 @@ def handler(event, context):
             "birthday": "2000-01-01",
             "sex": 0,
             "email": "",
-            "phone": phone if phone else "",
+            "phone": rand_phone,
             "templateId": TEMPLATE_ID,
             "cardNumber": "",
             "cardBarcode": "",
@@ -122,7 +125,10 @@ def handler(event, context):
             "parent": "",
             "tags": [],
         }]
-    })
+    }
+    print("createClients payload:", json.dumps(client_payload))
+    create_result = ph_request("POST", "createClients", data=client_payload)
+    print("createClients result:", json.dumps(create_result))
 
     if not create_result.get("ok"):
         return {
@@ -143,13 +149,14 @@ def handler(event, context):
         }
 
     client = clients[0]
+    print("client object:", json.dumps(client))
     client_id = client.get("clientId", "")
     card_hash = client.get("hash", "")
     card_number = client.get("cardNumber", "")
     card_barcode = client.get("cardBarcode", "")
 
-    order_guid = str(uuid.uuid4())[:16]
-    deposit_result = ph_request("POST", "createOrder", data={
+    order_guid = str(uuid.uuid4()).replace("-", "")[:16]
+    order_payload = {
         "guid": order_guid,
         "number": f"SG-{order_guid[:8]}",
         "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -161,9 +168,13 @@ def handler(event, context):
         "depositAdd": float(nominal),
         "depositWriteOff": 0,
         "cart": [],
-    })
+    }
+    print("createOrder payload:", json.dumps(order_payload))
+    deposit_result = ph_request("POST", "createOrder", data=order_payload)
+    print("createOrder result:", json.dumps(deposit_result))
 
-    qr_url = f"https://form.p-h.app/plug/{card_hash}" if card_hash else ""
+    # QR ведёт на номер карты, а не на установку
+    qr_url = str(card_number) if card_number else str(card_barcode)
 
     return {
         "statusCode": 200,
