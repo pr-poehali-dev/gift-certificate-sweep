@@ -6,7 +6,7 @@ import urllib.request
 import urllib.error
 import urllib.parse
 
-ALFA_API = "https://ecom.alfabank.ru/api/rest"
+ALFA_API = "https://pay.alfabank.ru/payment/rest"
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
