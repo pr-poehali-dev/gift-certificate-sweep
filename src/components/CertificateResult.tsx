@@ -20,14 +20,15 @@ interface CertificateResultProps {
 const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultProps) => {
   const formatPrice = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(certificate.qrUrl || certificate.cardNumber)}&bgcolor=1a1a1a&color=f5f0eb&format=svg`;
+  const qrData = certificate.cardNumber || certificate.cardBarcode || certificate.qrUrl;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&bgcolor=1a1a1a&color=f5f0eb&format=svg`;
 
   const handleShare = async () => {
-    const text = `Подарочный сертификат Sweep GIFT на ${formatPrice(certificate.nominal)} ₽ для ${certificate.recipientName}. Карта: ${certificate.cardNumber}`;
+    const text = `Подарочный сертификат Sweep GIFT на ${formatPrice(certificate.nominal)} ₽ для ${certificate.recipientName}. Номер карты: ${certificate.cardNumber}`;
     if (navigator.share) {
-      await navigator.share({ title: "Sweep GIFT", text, url: certificate.qrUrl });
+      await navigator.share({ title: "Sweep GIFT", text });
     } else {
-      await navigator.clipboard.writeText(text + "\n" + certificate.qrUrl);
+      await navigator.clipboard.writeText(text);
     }
   };
 
@@ -94,7 +95,7 @@ const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultP
                   loading="eager"
                 />
               </div>
-              <p className="font-body text-[10px] uppercase tracking-wider opacity-30 text-center">Отсканируйте для<br />активации карты</p>
+              <p className="font-body text-[10px] uppercase tracking-wider opacity-30 text-center">Номер карты<br />{qrData}</p>
             </div>
           </div>
         </div>
@@ -108,16 +109,7 @@ const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultP
           <Icon name="Share2" size={18} className="mr-2" />
           Поделиться
         </Button>
-        {certificate.qrUrl && (
-          <Button
-            variant="outline"
-            onClick={() => window.open(certificate.qrUrl, "_blank")}
-            className="flex-1 h-14 text-base font-body font-medium rounded-lg border-border"
-          >
-            <Icon name="ExternalLink" size={18} className="mr-2" />
-            Открыть карту
-          </Button>
-        )}
+
         <Button
           variant="outline"
           onClick={onNewCertificate}
