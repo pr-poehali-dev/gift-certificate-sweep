@@ -1,3 +1,5 @@
 {
+  "check-payment": "https://functions.poehali.dev/ff05838a-d8e7-43a7-9b9e-006f28780541",
+  "create-payment": "https://functions.poehali.dev/28ebfe42-6eba-4610-b7d1-b818a4579cd6",
   "create-certificate": "https://functions.poehali.dev/8e5ac1fd-3bcf-45b6-9870-91adc39ee29f"
 }

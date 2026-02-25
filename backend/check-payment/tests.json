@@ -1,0 +1,1 @@
+{"tests": [{"name": "Health check OPTIONS", "method": "OPTIONS", "path": "/", "expectedStatus": 200}, {"name": "Reject GET", "method": "GET", "path": "/", "expectedStatus": 405}, {"name": "Validation no orderId", "method": "POST", "path": "/", "expectedStatus": 400, "expectedBody": {"error": "string"}, "bodyMatcher": "partial"}]}

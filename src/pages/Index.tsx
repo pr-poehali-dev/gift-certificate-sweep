@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "@/components/ui/icon";
 import CertificatePreview from "@/components/CertificatePreview";
 import CertificateResult from "@/components/CertificateResult";
@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-const API_URL = "https://functions.poehali.dev/8e5ac1fd-3bcf-45b6-9870-91adc39ee29f";
+const API_PAYMENT = "https://functions.poehali.dev/28ebfe42-6eba-4610-b7d1-b818a4579cd6";
+const API_CHECK = "https://functions.poehali.dev/ff05838a-d8e7-43a7-9b9e-006f28780541";
 const NOMINALS = [1000, 2000, 3000, 5000, 7000, 10000];
 
 interface CertificateData {
@@ -28,10 +29,50 @@ const Index = () => {
   const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [certificate, setCertificate] = useState<CertificateData | null>(null);
+  const [paymentChecking, setPaymentChecking] = useState(false);
   const { toast } = useToast();
 
   const currentNominal = selectedNominal || (customNominal ? parseInt(customNominal) : 0);
   const isValidNominal = currentNominal >= 500;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get("orderId");
+    if (orderId) {
+      window.history.replaceState({}, "", window.location.pathname);
+      checkPayment(orderId);
+    }
+  }, []);
+
+  const checkPayment = async (orderId: string) => {
+    setPaymentChecking(true);
+    setStep(0);
+    try {
+      const response = await fetch(API_CHECK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await response.json();
+
+      if (data.paid && data.success && data.certificate) {
+        setCertificate(data.certificate);
+        setStep(4);
+        toast({ title: "Оплата прошла успешно", description: `Номер карты: ${data.certificate.cardNumber}` });
+      } else if (data.paid && data.error) {
+        toast({ title: "Оплата получена", description: data.error, variant: "destructive" });
+        setStep(1);
+      } else {
+        toast({ title: "Оплата не завершена", description: data.statusText || "Попробуйте ещё раз", variant: "destructive" });
+        setStep(1);
+      }
+    } catch {
+      toast({ title: "Ошибка", description: "Не удалось проверить оплату", variant: "destructive" });
+      setStep(1);
+    } finally {
+      setPaymentChecking(false);
+    }
+  };
 
   const handleNominalSelect = (value: number) => {
     setSelectedNominal(value);
@@ -52,29 +93,29 @@ const Index = () => {
   const handlePurchase = async () => {
     setIsProcessing(true);
     try {
-      const response = await fetch(API_URL, {
+      const returnUrl = window.location.origin + window.location.pathname;
+
+      const response = await fetch(API_PAYMENT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipientName: recipientName.trim(),
           senderName: senderName.trim(),
           nominal: currentNominal,
+          returnUrl,
         }),
       });
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || "Ошибка создания сертификата");
+      if (!response.ok || !data.formUrl) {
+        throw new Error(data.error || data.details || "Ошибка создания платежа");
       }
 
-      setCertificate(data.certificate);
-      setStep(4);
-      toast({ title: "Сертификат создан", description: `Номер карты: ${data.certificate.cardNumber}` });
+      window.location.href = data.formUrl;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Произошла ошибка";
-      toast({ title: "Ошибка", description: message, variant: "destructive" });
-    } finally {
+      toast({ title: "Ошибка оплаты", description: message, variant: "destructive" });
       setIsProcessing(false);
     }
   };
@@ -89,6 +130,18 @@ const Index = () => {
   };
 
   const formatPrice = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
+
+  if (step === 0 && paymentChecking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Icon name="Loader2" size={40} className="animate-spin mx-auto text-foreground" />
+          <h2 className="font-display text-2xl font-medium">Проверяем оплату...</h2>
+          <p className="text-muted-foreground font-body">Создаём ваш сертификат</p>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 4 && certificate) {
     return (
@@ -153,7 +206,7 @@ const Index = () => {
               <div className="w-8 h-px bg-border" />
               <button onClick={() => isValidNominal && recipientName.trim() && setStep(3)} className={`flex items-center gap-2 transition-colors ${step >= 3 ? "text-foreground" : ""}`}>
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs border ${step >= 3 ? "bg-foreground text-background border-foreground" : "border-border"}`}>3</span>
-                Оформление
+                Оплата
               </button>
             </div>
 
@@ -225,8 +278,8 @@ const Index = () => {
             {step === 3 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="font-display text-2xl font-medium mb-1">Подтвердите заказ</h2>
-                  <p className="text-sm text-muted-foreground font-body">Проверьте данные перед оформлением</p>
+                  <h2 className="font-display text-2xl font-medium mb-1">Оплата сертификата</h2>
+                  <p className="text-sm text-muted-foreground font-body">Проверьте данные и перейдите к оплате</p>
                 </div>
                 <div className="space-y-4 p-6 bg-secondary/50 rounded-xl">
                   <div className="flex justify-between items-center font-body">
@@ -247,6 +300,11 @@ const Index = () => {
                       </div>
                     </>
                   )}
+                  <div className="h-px bg-border" />
+                  <div className="flex justify-between items-center font-body">
+                    <span className="text-muted-foreground text-sm">К оплате</span>
+                    <span className="font-display text-2xl font-semibold">{formatPrice(currentNominal)} ₽</span>
+                  </div>
                 </div>
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={() => setStep(2)} className="h-14 px-6 rounded-lg border-border font-body">
@@ -256,16 +314,19 @@ const Index = () => {
                     {isProcessing ? (
                       <>
                         <Icon name="Loader2" size={20} className="animate-spin mr-2" />
-                        Создаём сертификат...
+                        Переход к оплате...
                       </>
                     ) : (
                       <>
-                        Оформить сертификат
-                        <Icon name="Sparkles" size={18} className="ml-2" />
+                        <Icon name="CreditCard" size={18} className="mr-2" />
+                        Оплатить {formatPrice(currentNominal)} ₽
                       </>
                     )}
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground font-body text-center">
+                  Безопасная оплата через Альфа-Банк
+                </p>
               </div>
             )}
           </div>
