@@ -102,8 +102,6 @@ def handler(event, context):
     recipient_name = body.get("recipientName", "").strip()
     sender_name = body.get("senderName", "").strip()
     nominal = body.get("nominal", 0)
-    phone = body.get("phone", "").strip()
-
     if not recipient_name or not nominal:
         return {"statusCode": 400, "headers": CORS_HEADERS, "body": json.dumps({"error": "recipientName и nominal обязательны"})}
 
@@ -115,11 +113,6 @@ def handler(event, context):
     last_name = name_parts[1] if len(name_parts) > 1 else ""
     patronymic = name_parts[2] if len(name_parts) > 2 else ""
 
-    client_phone = phone if phone else gen_phone()
-    if not client_phone.startswith("7"):
-        client_phone = "7" + client_phone.lstrip("+").lstrip("8")
-    client_phone = client_phone[:13]
-
     client_payload = {
         "clients": [{
             "lastName": last_name if last_name else "Сертификат",
@@ -128,7 +121,7 @@ def handler(event, context):
             "birthday": "2000-01-01",
             "sex": 0,
             "email": "",
-            "phone": client_phone,
+            "phone": gen_phone(),
             "templateId": TEMPLATE_ID,
             "cardNumber": "",
             "cardBarcode": "",
@@ -183,8 +176,8 @@ def handler(event, context):
         "guid": order_guid,
         "number": f"SG-{order_guid[:8]}",
         "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "sum": float(nominal),
-        "sumDiscount": float(nominal),
+        "sum": 0,
+        "sumDiscount": 0,
         "bonusAdd": 0,
         "bonusWriteOff": 0,
         "depositAdd": float(nominal),

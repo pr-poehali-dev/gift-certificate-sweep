@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { toPng } from "html-to-image";
 import Icon from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 
@@ -18,10 +20,27 @@ interface CertificateResultProps {
 }
 
 const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const formatPrice = (value: number) => new Intl.NumberFormat("ru-RU").format(value);
 
   const qrData = certificate.cardNumber || certificate.cardBarcode || certificate.qrUrl;
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&bgcolor=1a1a1a&color=f5f0eb&format=svg`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&bgcolor=1a1a1a&color=f5f0eb&format=png`;
+
+  const handleDownload = async () => {
+    if (!cardRef.current) return;
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 3,
+        backgroundColor: "#0a0a0a",
+      });
+      const link = document.createElement("a");
+      link.download = `certificate-${certificate.cardNumber || "sweep"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error("Download error:", err);
+    }
+  };
 
   const handleShare = async () => {
     const text = `Подарочный сертификат Sweep GIFT на ${formatPrice(certificate.nominal)} ₽ для ${certificate.recipientName}. Номер карты: ${certificate.cardNumber}`;
@@ -42,7 +61,10 @@ const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultP
         <p className="text-muted-foreground font-body">Карта клиента зарегистрирована в системе лояльности</p>
       </div>
 
-      <div className="relative bg-foreground text-background rounded-2xl overflow-hidden shadow-2xl shadow-foreground/20">
+      <div
+        ref={cardRef}
+        className="relative bg-foreground text-background rounded-2xl overflow-hidden shadow-2xl shadow-foreground/20"
+      >
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
           backgroundSize: '24px 24px'
@@ -80,7 +102,7 @@ const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultP
 
               <div className="space-y-1">
                 <p className="font-body text-xs tracking-wider opacity-50">Карта № {certificate.cardNumber}</p>
-                {certificate.cardBarcode && (
+                {certificate.cardBarcode && certificate.cardBarcode !== certificate.cardNumber && (
                   <p className="font-body text-xs tracking-wider opacity-30">Баркод: {certificate.cardBarcode}</p>
                 )}
               </div>
@@ -92,6 +114,7 @@ const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultP
                   src={qrImageUrl}
                   alt="QR код сертификата"
                   className="w-36 h-36"
+                  crossOrigin="anonymous"
                   loading="eager"
                 />
               </div>
@@ -103,13 +126,20 @@ const CertificateResult = ({ certificate, onNewCertificate }: CertificateResultP
 
       <div className="flex flex-col sm:flex-row gap-3">
         <Button
-          onClick={handleShare}
+          onClick={handleDownload}
           className="flex-1 h-14 text-base font-body font-medium rounded-lg bg-foreground text-background hover:bg-foreground/90"
+        >
+          <Icon name="Download" size={18} className="mr-2" />
+          Скачать фото
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleShare}
+          className="flex-1 h-14 text-base font-body font-medium rounded-lg border-border"
         >
           <Icon name="Share2" size={18} className="mr-2" />
           Поделиться
         </Button>
-
         <Button
           variant="outline"
           onClick={onNewCertificate}
